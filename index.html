@@ -53,7 +53,6 @@
         <div class="gun-btn" onclick="changeGun(3)">4</div>
     </div>
 
-    <!-- START SCREEN -->
     <div id="start-screen" class="screen">
         <h1>MINION DEFENSE</h1>
         <p>Dark Protocol Engaged.<br>Defend the lab from Vector Bots!</p>
@@ -64,14 +63,12 @@
         </div>
     </div>
 
-    <!-- LEADERBOARD SCREEN -->
     <div id="leaderboard-screen" class="screen hidden">
         <h1>TOP AGENTS</h1>
         <div class="leaderboard" id="lb-list"></div>
         <button class="secondary" onclick="showStartScreen()">BACK</button>
     </div>
 
-    <!-- GAME OVER SCREEN -->
     <div id="game-over-screen" class="screen hidden">
         <h1 style="color: #ff0000;">SYSTEM FAILURE</h1>
         <p>The Villains have taken over.</p>
@@ -80,7 +77,6 @@
         <button onclick="startGame()">RETRY MISSION</button>
     </div>
 
-    <!-- VICTORY SCREEN -->
     <div id="victory-screen" class="screen hidden">
         <h1 style="color: #00ff00; text-shadow: 0 0 20px #00ff00;">MISSION COMPLETE!</h1>
         <p>You defended the lab through all 25 levels!</p>
@@ -90,7 +86,6 @@
 </div>
 
 <script>
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score-board');
@@ -168,7 +163,8 @@ function spawnEnemies(){let rate=60-currentLevel; if(rate<20)rate=20; if(frameCo
 function createExplosion(x,y,c){for(let i=0;i<15;i++)particles.push(new Particle(x,y,c));}
 
 function checkCollisions(){projectiles.forEach((p,pi)=>{enemies.forEach((e,ei)=>{if(Math.hypot(p.x-e.x,p.y-e.y)-e.r-p.r<1){createExplosion(e.x,e.y,e.col);score+=100;scoreEl.innerText="SCORE: "+score;setTimeout(()=>{enemies.splice(ei,1);projectiles.splice(pi,1);},0);}});});enemies.forEach((e,ei)=>{if(Math.hypot(player.x-e.x,player.y-e.y)-player.radius-e.r<1){createExplosion(player.x,player.y,'#ff0000');player.health-=20;healthFill.style.width=player.health+"%";enemies.splice
-                                                                                                                                                                                                                                                                                                                                                              player.health-=20;healthFill.style.width=player.health+"%";enemies.splice(ei,1);if(player.health<=0)endGame();}});}
+player.health-=20;healthFill.style.width=player.health+"%";enemies.splice(ei,1);if(player.health<=0)endGame();}});}
+
 function checkLevel(){levelTimer++;if(levelTimer>=levelDuration){levelTimer=0;currentLevel++;if(currentLevel>MAX_LEVELS){winGame();}else{levelEl.innerText="LEVEL: "+currentLevel;}}}
 
 function animate(){if(!gameActive)return;requestAnimationFrame(animate);ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -185,5 +181,4 @@ function winGame(){gameActive=false;saveScore();victoryScoreEl.innerText="Final 
 
 </script>
 </body>
-</html>
-                                                                                                                                                                                                                                                                                                                                                                        
+</html>                                                                                                                                                                                                                                                                                                                                                                     
