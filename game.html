@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minion Defense</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#050510;font-family:'Courier New',monospace;color:#fff;overflow:hidden;touch-action:none}
+#game{width:100vw;height:100vh;position:relative}
+canvas{width:100%;height:100%;display:block;background:radial-gradient(circle,#1a1a2e,#000)}
+.ui{position:absolute;top:0;left:0;right:0;padding:15px;display:flex;justify-content:space-between;pointer-events:none;z-index:2}
+.ui div{background:rgba(0,0,0,0.5);padding:8px 12px;border-radius:5px}
+#score{color:#ffd700;font-size:20px;font-weight:bold}
+#level{color:#00ff00}
+#weapon{color:#00ffff;font-size:12px}
+#hpbox{width:120px;height:12px;background:#222;border-radius:6;overflow:hidden}
+#hp{width:100%;height:100%;background:linear-gradient(90deg,#f00,#fa0)}
+#guns{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:3}
+.gun{width:40px;height:40px;background:rgba(0,0,0,0.7);border:2px solid #555;border-radius:5px;color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.gun.on{border-color:#ff0;background:rgba(255,255,0,0.2)}
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10}
+.screen h1{color:#ffd700;font-size:28px;margin-bottom:15px}
+.screen p{color:#aaa;margin-bottom:15px}
+.screen input{padding:10px;font-size:16px;background:#111;border:2px solid #ffd700;color:#fff;border-radius:5px;width:180px;text-align:center;margin-bottom:15px}
+.screen button{padding:10px 25px;font-size:16px;background:#ffd700;border:none;color:#000;font-weight:bold;border-radius:5px;cursor:pointer;margin:5px}
+.screen button:hover{background:#fff}
+.lb{background:rgba(255,255,255,0.1);padding:15px;border-radius:8px;width:70%;max-width:250px;max-height:200px;overflow-y:auto;margin-bottom:15px}
+.lb div{display:flex;justify-content:space-between;padding:5px;border-bottom:1px solid #333}
+.lb .h{color:#ffd700;font-weight:bold;border-bottom:2px solid #ffd700}
+.hid{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="game">
+<canvas id="c"></canvas>
+<div class="ui">
+ <div>
+  <div id="score">SCORE: 0</div>
+  <div id="level">LEVEL: 1</div>
+  <div id="weapon">BANANA</div>
+ </div>
+ <div id="hpbox"><div id="hp"></div></div>
+</div>
+<div id="guns">
+ <div class="gun on" onclick="sg(0)">1</div>
+ <div class="gun" onclick="sg(1)">2</div>
+ <div class="gun" onclick="sg(2)">3</div>
+ <div class="gun" onclick="sg(3)">4</div>
+</div>
+
+<div id="start" class="screen">
+ <h1>MINION DEFENSE</h1>
+ <p>Defend the lab!</p>
+ <input id="na" placeholder="YOUR NAME" maxlength="8">
+ <button onclick="showL()">SCORES</button>
+ <button onclick="st()">START</button>
+</div>
+
+<div id="lb" class="screen hid">
+ <h1>TOP AGENTS</h1>
+ <div class="lb" id="list"></div>
+ <button onclick="sh()">BACK</button>
+</div>
+
+<div id="over" class="screen hid">
+ <h1 style="color:#f00">GAME OVER</h1>
+ <h2 id="fs">Score: 0</h2>
+ <p id="fl">Level: 1</p>
+ <button onclick="st()">RETRY</button>
+</div>
+
+<div id="win" class="screen hid">
+ <h1 style="color:#0f0">YOU WIN!</h1>
+ <h2 id="ws">Score: 0</h2>
+ <button onclick="st()">AGAIN</button>
+</div>
+</div>
+
+<script>
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+let W, H;
+
+function sz(){ W=c.width=window.innerWidth; H=c.height=window.innerHeight; }
+window.onresize = sz; sz();
+
+let run = false, sc = 0, lv = 1, fc = 0, tm = 0;
+let p, bl = [], en = [], pt = [];
+let gi = 0, name = "AGENT";
+const MLV = 25, LT = 1000;
+
+const gs = [
+{n:"BANANA",c:"#ff0",s:5,sp:18,r:8,ty:"s"},
+{n:"RAPID",c:"#0f0",s:4,sp:22,r:3,ty:"s"},
+{n:"SPREAD",c:"#f0f",s:4,sp:14,r:15,ty:"p"},
+{n:"PLASMA",c:"#0ff",s:10,sp:25,r:25,ty:"l"}
+];
+
+let mx = W/2, my = H-80, f = false;
+c.onmousemove = e =>{mx=e.clientX; my=e.clientY;}
+c.ontouchmove = e=>{e.preventDefault(); mx=e.touches[0].clientX; my=e.touches[0].clientY;}
+c.onmousedown = ()=>f=true;
+c.onmouseup = ()=>f=false;
+c.ontouchstart = e=>{f=true; mx=e.touches[0].clientX; my=e.touches[0].clientY;}
+c.ontouchend = ()=>f=false;
+document.onkeydown = e=>{if(run && e.key>="1" && e.key<="4") sg(parseInt(e.key)-1)};
+
+function sg(i){gi=i; document.getElementById("weapon").innerText=gs[i].n; document.querySelectorAll(".gun").forEach((t,j)=>t.classList.toggle("on",j===i));}
+
+function gl(){return JSON.parse(localStorage.getItem("mlb")||"[]");}
+function sv(){let l=gl(); l.push({n:NAME, s:sc, l:lv}); l.sort((a,b)=>b.s-a.s); localStorage.setItem("mlb",JSON.stringify(l.slice(0,10)));}
+function shL(){let l=gl(); let h='<div class="h"><span>NAME</span><span>SCORE</span></div>'; l.forEach((t,i)=>h+=`<div><span>${i+1}. ${t.n}</span><span>${t.s}</span></div>`); document.getElementById("list").innerHTML=h; document.getElementById("start").classList.add("hid"); document.getElementById("lb").classList.remove("hid");}
+function sh(){document.getElementById("lb").classList.add("hid"); document.getElementById("start").classList.remove("hid");}
+
+class PL{
+ constructor(){this.x=W/2; this.y=H-80; this.r=20; this.h=100;}
+ draw(){
+  x.fillStyle="#07D"; x.fillRect(this.x-18,this.y+5,36,25); x.fillRect(this.x-14,this.y+25,8,12); x.fillRect(this.x+6,this.y+25,8,12);
+  x.beginPath(); x.arc(this.x,this.y,this.r,0,Math.PI*2); x.fillStyle="#ff0"; x.fill();
+  x.fillStyle="#333"; x.fillRect(this.x-24,this.y-4,48,8);
+  x.beginPath(); x.arc(this.x,this.y,12,0,Math.PI*2); x.fillStyle="#ccc"; x.fill();
+  x.beginPath(); x.arc(this.x,this.y,6,0,Math.PI*2); x.fillStyle="#0ff"; x.fill();
+  x.fillStyle=gs[gi].c; x.fillRect(this.x+12,this.y+6,16,6);
+ }
+ update(){
+  this.x+=(mx-this.x)*0.15; this.y+=(my-this.y)*0.15;
+  this.x=Math.max(this.r,Math.min(W-this.r,this.x));
+  this.y=Math.max(H/2,Math.min(H-30,this.y));
+  if(f && fc%gs[gi].r===0) this.sh();
+ }
+ sh(){
+  let g=gs[gi];
+  if(g.ty==="s") bl.push(new BL(this.x,this.y-15,g));
+  else if(g.ty==="p"){bl.push(new BL(this.x,this.y-15,g,-4)); bl.push(new BL(this.x,this.y-15,g,0)); bl.push(new BL(this.x,this.y-15,g,4));}
+  else bl.push(new BL(this.x,this.y-20,g));
+ }
+}
+
+class BL{
+ constructor(x,y,g,vx){this.x=x;this.y=y;this.r=g.s;this.c=g.c;this.vx=vx;this.vy=-g.sp;}
+ draw(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle=this.c;x.shadowBlur=10;x.shadowColor=this.c;x.fill();x.shadowBlur=0;}
+ update(){this.x+=this.vx;this.y+=this.vy;}
+}
+
+class EN{
+ constructor(){this.x=Math.random()*(W-50)+25; this.y=-30; this.r=20; this.c="#90f"; this.sp=2+Math.random()*2+(lv*0.12)+(sc*0.0001); if(this.sp>8)this.sp=8;}
+ draw(){x.fillStyle=this.c; x.fillRect(this.x-16,this.y-16,32,32); x.fillStyle="#0f0"; x.fillRect(this.x-6,this.y-6,12,4);}
+ update(){this.y+=this.sp;}
+}
+
+class PT{
+ constructor(x,y,c){this.x=x;this.y=y;this.c=c;this.vx=(Math.random()-0.5)*5;this.vy=(Math.random()-0.5)*5;this.l=1;this.r=Math.random()*2+1;}
+ draw(){x.globalAlpha=this.l;x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle=this.c;x.fill();x.globalAlpha=1;}
+ update(){this.x+=this.vx;this.y+=this.vy;this.l-=0.03;}
+}
+
+function spw(){let r=Math.max(20,55-lv); if(fc%r===0) en.push(new EN());}
+function bo(x,y,c){for(let i=0;i<10;i++) pt.push(new PT(x,y,c));}
+
+function ck(){
+ bl.forEach((b,bi)=>{en.forEach((e,ei)=>{if(Math.hypot(b.x-e.x,b.y-e.y)<e.r+b.r){bo(e.x,e.y,e.c); sc+=100; document.getElementById("score").innerText="SCORE: "+sc; setTimeout(()=>{en.splice(ei,1);bl.splice(bi,1);},0);}});});
+ en.forEach((e,ei)=>{if(Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){bo(p.x,p.y,"#f00"); p.h-=20; document.getElementById("hp").style.width=p.h+"%"; en.splice(ei,1); if(p.h<=0)ov();}});
+}
+
+function lp(){
+ if(!run)return;
+ requestAnimationFrame(lp);
+ x.clearRect(0,0,W,H);
+ x.strokeStyle="#0fc2"; for(let i=0;i<W;i+=40){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke();}
+ for(let i=0;i<H;i+=40){let y=(i+fc*2)%40; x.beginPath();x.moveTo(0,y);x.lineTo(W,y);x.stroke();}
+ p.draw(); p.update();
+ bl.forEach((b,i)=>{b.update();b.draw();if(b.y<0)bl.splice(i,1);});
+ en.forEach((e,i)=>{e.update();e.draw();if(e.y>H)en.splice(i,1);});
+ pt.forEach((p,i)=>{p.update();p.draw();if(p.l<=0)pt.splice(i,1);});
+ spw(); ck(); fc++; tm++;
+ if(tm>LT){tm=0; lv++; if(lv>MLV){wn();}else{document.getElementById("level").innerText="LEVEL: "+lv;}}
+}
+
+function st(){NAME=document.getElementById("na").value.trim()||"AGENT"; p=new PL(); bl=[]; en=[]; pt=[]; sc=0; lv=1; fc=0; tm=0; document.getElementById("score").innerText="SCORE: 0"; document.getElementById("level").innerText="LEVEL: 1"; document.getElementById("hp").style.width="100%"; run=true; document.querySelectorAll(".screen").forEach(d=>d.classList.add("hid")); lp();}
+function ov(){run=false; sv(); document.getElementById("fs").innerText="Score: "+sc; document.getElementById("fl").innerText="Level: "+lv; document.getElementById("over").classList.remove("hid");}
+function wn(){run=false; sv(); document.getElementById("ws").innerText="Score: "+sc; document.getElementById("win").classList.remove("hid");}
+function showL(){shL();}
+function sh(){sh();}
+</script>
+</body>
+</html>
