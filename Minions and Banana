@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Minion Banana Catch</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        canvas {
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+            border: 5px solid #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 10px;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+        }
+        #gameOverScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            display: none;
+        }
+        #gameOverScreen h1 { font-size: 50px; margin: 0 0 20px 0; text-shadow: 3px 3px 0 #000; }
+        #restartBtn {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #FFD700;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+        #restartBtn:hover { transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+<div id="ui">Score: <span id="scoreDisplay">0</span></div>
+
+<div id="gameOverScreen">
+    <h1>GAME OVER</h1>
+    <p style="font-size: 20px;">Final Score: <span id="finalScore">0</span></p>
+    <button id="restartBtn" onclick="location.reload()">Play Again</button>
+</div>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreDisplay = document.getElementById('finalScore');
+
+    // --- Game Variables ---
+    let score = 0;
+    let gameFrame = 0;
+    let gameOver = false;
+    let lives = 3;
+    let particles = []; // For explosion effects
+    let bananas = [];   // Falling bananas
+    let floatTexts = []; 
+
+    // --- Input Handling ---
+    let mouseX = canvas.width / 2;
+    let leftPressed = false;
+    let rightPressed = false;
+
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') leftPressed = true;
+        if (e.key === 'ArrowRight') rightPressed = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft') leftPressed = false;
+        if (e.key === 'ArrowRight') rightPressed = false;
+    });
+
+    // --- THE MINION (Player) ---
+    class Minion {
+        constructor() {
+            this.width = 60;
+            this.height = 90;
+            this.x = canvas.width / 2 - this.width / 2;
+            this.y = canvas.height - this.height - 10;
+            this.speed = 8;
+            this.blinkTimer = 0;
+            this.eyeOpen = true;
+        }
+
+        update() {
+            if (gameOver) return;
+
+            if (leftPressed && this.x > 0) {
+                this.x -= this.speed;
+            } else if (rightPressed && this.x < canvas.width - this.width) {
+                this.x += this.speed;
+            } else if (mouseX > 0 && mouseX < canvas.width) {
+                let targetX = mouseX - this.width / 2;
+                this.x += (targetX - this.x) * 0.1;
+            }
+
+            this.blinkTimer++;
+            if (this.blinkTimer > 200 + Math.random() * 100) {
+                this.eyeOpen = false;
+                if (this.blinkTimer > 200 + Math.random() * 120) {
+                    this.eyeOpen = true;
+                    this.blinkTimer = 0;
+                }
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x + this.width/2, this.y + this.height/2);
+
+            // Legs
+            ctx.fillStyle = '#333';
+            ctx.fillRect(-25, 25, 15, 20);
+            ctx.fillRect(10, 25, 15, 20);
+
+            // Body
+            ctx.fillStyle = '#F4E04D';
+            ctx.beginPath();
+            ctx.roundRect(-30, -45, 60, 90, 30);
+            ctx.fill();
+            
+            // Overalls
+            ctx.fillStyle = '#4287f5';
+            ctx.fillRect(-30, 0, 60, 50);
+            ctx.fillStyle = '#3266bf';
+            ctx.fillRect(-20, -20, 10, 20);
+            ctx.fillRect(10, -20, 10, 20);
+            ctx.fillRect(-10, 10, 20, 15);
+
+            // Goggles
+            ctx.fillStyle = '#C0C0C0';
+            ctx.fillRect(-32, -15, 64, 15);
+            
+            // Eye
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(0, -8, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            if (this.eyeOpen) {
+                ctx.fillStyle = '#5C4033';
+                ctx.beginPath();
+                ctx.arc(0, -8, 7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(2, -11, 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-10, -8);
+                ctx.lineTo(10, -8);
+                ctx.stroke();
+            }
+
+            // Mouth
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 15, 10, 0.2, Math.PI - 0.2);
+            ctx.stroke();
+
+            // Hair
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, -45);
+            ctx.lineTo(-15, -55);
+            ctx.moveTo(0, -45);
+            ctx.lineTo(0, -60);
+            ctx.moveTo(10, -45);
+            ctx.lineTo(15, -55);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+    }
+
+    // --- BANANA ---
+    class Banana {
+        constructor() {
+            this.width = 40;
+            this.height = 40;
+            this.x = Math.random() * (canvas.width - this.width);
+            this.y = -50;
+            this.speed = Math.random() * 2 + 2 + (score * 0.05);
+            this.angle = 0;
+            this.spinSpeed = Math.random() * 0.1 + 0.05;
+            this.markedForDeletion = false;
+        }
+
+        update() {
+            if (gameOver) return;
+            this.y += this.speed;
+            this.angle += this.spinSpeed;
+
+            if (this.y > canvas.height) {
+                this.markedForDeletion = true;
+                lives--; // Lose life if missed
+            }
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x + this.width/2, this.y + this.height/2);
+            ctx.rotate(this.angle);
+
+            ctx.fillStyle = '#FFE135';
+            ctx.beginPath();
+            ctx.arc(0, 0, 15, 0.5, Math.PI - 0.5); 
+            ctx.lineTo(0,0);
+            ctx.fill();
+            
+            ctx.fillStyle = '#8B4513';
+            ctx.beginPath();
+            ctx.arc(5, -5, 1, 0, Math.PI*2);
+            ctx.arc(-5, 5, 1, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
+    // --- EFFECTS ---
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.size = Math.random() * 5 + 2;
+            this.speedX = Math.random() * 6 - 3;
+            this.speedY = Math.random() * 6 - 3;
+            this.color = color;
+            this.life = 100;
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+            this.life -= 2;
+        }
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = this.life / 100;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    class FloatingText {
+        constructor(x, y, text) {
+            this.x = x;
+            this.y = y;
+            this.text = text;
+            this.life = 100;
+            this.dy = -1;
+        }
+        update() {
+            this.y += this.dy;
+            this.life -= 3;
+        }
+        draw() {
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 20px Arial';
+            ctx.globalAlpha = Math.max(0, this.life / 100);
+            ctx.fillText(this.text, this.x, this.y);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // --- Helper Functions ---
+    function handleCollision(minion, banana) {
+        if (
+            minion.x < banana.x + banana.width &&
+            minion.x + minion.width > banana.x &&
+            minion.y < banana.y + banana.height &&
+            minion.y + minion.height > banana.y
+        ) {
+            return true;
+        }
+        return false;
+    }
+
+    function createExplosion(x, y) {
+        const colors = ['#FFE135', '#8B4513', '#32CD32', '#FFD700'];
+        for (let i = 0; i < 10; i++) {
+            particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+        }
+    }
+
+    const player = new Minion();
+
+    // --- Main Game Loop ---
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Spawn Bananas (faster as score increases)
+        let spawnRate = 60;
+        if (score > 10) spawnRate = 50;
+        if (score > 20) spawnRate = 40;
+        if (score > 40) spawnRate = 30;
+
+        if (gameFrame % spawnRate === 0 && !gameOver) {
+            bananas.push(new Banana());
+        }
+
+        // Update Player
+        player.update();
+        player.draw();
+
+        // Update Particles
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].update();
+            particles[i].draw();
+            if (particles[i].life <= 0) {
+                particles.splice(i, 1);
+                i--;
+            }
+        }
+
+        // Update Floating Text
+        for (let i = 0; i < floatTexts.length; i++) {
+            floatTexts[i].update();
+            floatTexts[i].draw();
+            if (floatTexts[i].life <= 0) {
+                floatTexts.splice(i, 1);
+                i--;
+            }
+        }
+
+        // Update Bananas
+        for (let i = 0; i < bananas.length; i++) {
+            bananas[i].update();
+            bananas[i].draw();
+
+            // Collision with Player
+            if (handleCollision(player, bananas[i])) {
+                score++;
+                bananas[i].markedForDeletion = true;
+                scoreDisplay.innerText = score;
+                createExplosion(bananas[i].x, bananas[i].y);
+                floatTexts.push(new FloatingText(bananas[i].x, bananas[i].y, "+1"));
+            }
+
+            if (bananas[i].markedForDeletion) {
+                bananas.splice(i, 1);
+                i--;
+            }
+        }
+
+        // Check Game Over
+        if (lives <= 0 && !gameOver) {
+            gameOver = true;
+            finalScoreDisplay.innerText = score;
+            gameOverScreen.style.display = 'block';
+        }
+
+        // Draw Lives (Visual hearts)
+        ctx.fillStyle = 'white';
+        ctx.font = '20px Arial';
+        ctx.fillText("Lives: " + "❤️".repeat(lives), 20, 50);
+
+        gameFrame++;
+        requestAnimationFrame(animate);
+    }
+
+    animate();
+</script>
+
+</body>
+</html>
