@@ -2,33 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minion Defense: Dark Protocol</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #050510; overflow: hidden; font-family: 'Courier New', monospace; color: white; touch-action: none; user-select: none; }
-        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-        canvas { background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%); box-shadow: 0 0 20px #00ffcc33; display: block; }
-        .ui-layer { position: absolute; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; z-index: 2; }
-        #score-board { font-size: 24px; font-weight: bold; text-shadow: 0 0 5px #ffff00; color: #ffd700; }
+        body { margin: 0; padding: 0; background: #050510; overflow: hidden; font-family: 'Courier New', monospace; color: white; touch-action: none; }
+        #game-container { width: 100vw; height: 100vh; position: relative; }
+        canvas { display: block; background: radial-gradient(circle, #1a1a2e, #000); }
+        .ui { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; box-sizing: border-box; display: flex; justify-content: space-between; pointer-events: none; z-index: 2; }
+        .ui-left { text-align: left; }
+        .ui-right { text-align: right; }
+        #score-board { font-size: 24px; color: #ffd700; font-weight: bold; }
         #level-display { font-size: 18px; color: #00ff00; margin-top: 5px; }
         #weapon-display { font-size: 14px; color: #00ffff; }
-        #health-bar-container { width: 200px; height: 20px; border: 2px solid #333; background: #111; align-self: center; border-radius: 10px; overflow: hidden; }
-        #health-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ffaa00); transition: width 0.2s; }
-        #gun-selector { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; z-index: 5; }
-        .gun-btn { width: 50px; height: 50px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 8px; color: #fff; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .gun-btn.active { border-color: #ffd700; background: rgba(255, 215, 0, 0.3); box-shadow: 0 0 10px #ffd700; }
-        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.92); display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 10; overflow-y: auto; }
-        h1 { font-size: 36px; color: #ffd700; text-shadow: 0 0 15px #ffaa00; margin: 0 0 15px 0; text-align: center; }
+        #health-bar { width: 150px; height: 15px; background: #111; border: 2px solid #333; border-radius: 8px; overflow: hidden; }
+        #health-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ffaa00); }
+        #gun-selector { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 5; }
+        .gun-btn { width: 45px; height: 45px; background: rgba(0,0,0,0.8); border: 2px solid #555; border-radius: 8px; color: #fff; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .gun-btn.active { border-color: #ffd700; background: rgba(255,215,0,0.3); }
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        h1 { font-size: 32px; color: #ffd700; margin: 0 0 20px 0; text-shadow: 0 0 15px #ffaa00; }
         h2 { color: #00ffff; margin: 0 0 15px 0; }
-        p { font-size: 16px; color: #aaa; margin: 0 0 20px 0; text-align: center; max-width: 80%; }
-        input[type="text"] { padding: 15px; font-size: 20px; background: #111; border: 2px solid #ffd700; color: #fff; border-radius: 5px; text-align: center; width: 220px; font-family: inherit; margin-bottom: 15px; }
-        button { padding: 15px 40px; font-size: 18px; background: #ffd700; border: none; color: #000; font-weight: bold; cursor: pointer; box-shadow: 0 0 15px #ffd700; border-radius: 5px; text-transform: uppercase; margin: 5px; }
-        button:hover { background: #fff; box-shadow: 0 0 25px #fff; }
-        button.secondary { background: #333; color: #fff; box-shadow: none; font-size: 14px; padding: 10px 20px; }
-        .leaderboard { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; max-height: 300px; overflow-y: auto; width: 80%; max-width: 350px; }
-        .lb-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #333; font-size: 16px; }
-        .lb-row.header { color: #ffd700; font-weight: bold; border-bottom: 2px solid #ffd700; }
-        .lb-row span:nth-child(2) { color: #00ff00; }
+        p { color: #aaa; margin: 0 0 20px 0; text-align: center; max-width: 80%; }
+        input { padding: 12px; font-size: 18px; background: #111; border: 2px solid #ffd700; color: #fff; border-radius: 5px; text-align: center; width: 200px; margin-bottom: 20px; }
+        button { padding: 12px 30px; font-size: 16px; background: #ffd700; border: none; color: #000; font-weight: bold; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #fff; }
+        .lb { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; max-height: 250px; overflow-y: auto; width: 70%; max-width: 300px; }
+        .lb-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #333; }
+        .lb-head { color: #ffd700; font-weight: bold; border-bottom: 2px solid #ffd700; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -36,16 +36,18 @@
 
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
-
-    <div class="ui-layer">
-        <div>
+    
+    <div class="ui">
+        <div class="ui-left">
             <div id="score-board">SCORE: 0</div>
             <div id="level-display">LEVEL: 1</div>
-            <div id="weapon-display">WEAPON: BANANA BLASTER</div>
+            <div id="weapon-display">BANANA BLASTER</div>
         </div>
-        <div id="health-bar-container"><div id="health-fill"></div></div>
+        <div class="ui-right">
+            <div id="health-bar"><div id="health-fill"></div></div>
+        </div>
     </div>
-
+    
     <div id="gun-selector">
         <div class="gun-btn active" onclick="changeGun(0)">1</div>
         <div class="gun-btn" onclick="changeGun(1)">2</div>
@@ -55,32 +57,30 @@
 
     <div id="start-screen" class="screen">
         <h1>MINION DEFENSE</h1>
-        <p>Dark Protocol Engaged.<br>Defend the lab from Vector Bots!</p>
-        <input type="text" id="player-name" placeholder="ENTER YOUR NAME" maxlength="10">
+        <p>Dark Protocol Engaged.<br>Defend the lab!</p>
+        <input type="text" id="player-name" placeholder="YOUR NAME" maxlength="10">
         <div>
-            <button class="secondary" onclick="showLeaderboard()">LEADERBOARD</button>
-            <button onclick="startGame()">START MISSION</button>
+            <button onclick="showLB()">SCORES</button>
+            <button onclick="startGame()">START</button>
         </div>
     </div>
 
-    <div id="leaderboard-screen" class="screen hidden">
+    <div id="lb-screen" class="screen hidden">
         <h1>TOP AGENTS</h1>
-        <div class="leaderboard" id="lb-list"></div>
-        <button class="secondary" onclick="showStartScreen()">BACK</button>
+        <div class="lb" id="lb-list"></div>
+        <button onclick="showStart()">BACK</button>
     </div>
 
     <div id="game-over-screen" class="screen hidden">
-        <h1 style="color: #ff0000;">SYSTEM FAILURE</h1>
-        <p>The Villains have taken over.</p>
+        <h1 style="color:#ff0000;">SYSTEM FAILURE</h1>
         <h2 id="final-score">Score: 0</h2>
-        <p id="final-level" style="color: #888;">Level Reached: 1</p>
-        <button onclick="startGame()">RETRY MISSION</button>
+        <p id="final-level">Level: 1</p>
+        <button onclick="startGame()">RETRY</button>
     </div>
 
     <div id="victory-screen" class="screen hidden">
-        <h1 style="color: #00ff00; text-shadow: 0 0 20px #00ff00;">MISSION COMPLETE!</h1>
-        <p>You defended the lab through all 25 levels!</p>
-        <h2 id="victory-score">Final Score: 0</h2>
+        <h1 style="color:#00ff00;">MISSION COMPLETE!</h1>
+        <h2 id="victory-score">Score: 0</h2>
         <button onclick="startGame()">PLAY AGAIN</button>
     </div>
 </div>
@@ -93,92 +93,125 @@ const levelEl = document.getElementById('level-display');
 const weaponEl = document.getElementById('weapon-display');
 const healthFill = document.getElementById('health-fill');
 const startScreen = document.getElementById('start-screen');
-const lbScreen = document.getElementById('leaderboard-screen');
+const lbScreen = document.getElementById('lb-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 const victoryScreen = document.getElementById('victory-screen');
-const finalScoreEl = document.getElementById('final-score');
-const finalLevelEl = document.getElementById('final-level');
-const victoryScoreEl = document.getElementById('victory-score');
 const lbList = document.getElementById('lb-list');
-const playerNameInput = document.getElementById('player-name');
+const nameInput = document.getElementById('player-name');
 
-let gameActive = false, score = 0, currentLevel = 1, frameCount = 0, levelTimer = 0;
-let player, projectiles = [], enemies = [], particles = [];
-let currentGun = 0, playerName = "AGENT";
-const MAX_LEVELS = 25;
-const levelDuration = 1500;
+let gameRunning = false, score = 0, level = 1, frame = 0, timer = 0;
+let player, bullets = [], enemies = [], effects = [];
+let gunIndex = 0, pName = "AGENT";
+const MAX_LEVEL = 25;
+const LEVEL_TIME = 1200;
 
 const guns = [
-    {name:"BANANA BLASTER", color:"#FFD700", size:6, speed:18, cooldown:8, type:"single"},
-    {name:"RAPID FIRE", color:"#00ff00", size:4, speed:22, cooldown:3, type:"single"},
-    {name:"SPREAD SHOT", color:"#ff00ff", size:5, speed:14, cooldown:15, type:"spread"},
-    {name:"PLASMA LASER", color:"#00ffff", size:12, speed:25, cooldown:25, type:"large"}
+    {name:"BANANA BLASTER",color:"#FFD700",size:6,speed:18,rate:8,type:"single"},
+    {name:"RAPID FIRE",color:"#00ff00",size:4,speed:22,rate:3,type:"single"},
+    {name:"SPREAD SHOT",color:"#ff00ff",size:5,speed:14,rate:15,type:"spread"},
+    {name:"PLASMA LASER",color:"#00ffff",size:12,speed:25,rate:25,type:"large"}
 ];
 
-function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
-window.addEventListener('resize',resize); resize();
+function init() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.onresize = init; init();
 
-let mouseX=canvas.width/2, mouseY=canvas.height-100, isTouching=false;
-function updateInput(x,y){ mouseX=x; mouseY=y; }
+let mx = canvas.width/2, my = canvas.height-80, firing = false;
+canvas.onmousemove = e => { mx = e.clientX; my = e.clientY; };
+canvas.ontouchmove = e => { e.preventDefault(); mx = e.touches[0].clientX; my = e.touches[0].clientY; };
+canvas.onmousedown = () => firing = true;
+canvas.onmouseup = () => firing = false;
+canvas.ontouchstart = e => { firing = true; mx = e.touches[0].clientX; my = e.touches[0].clientY; };
+canvas.ontouchend = () => firing = false;
+document.onkeydown = e => { if(gameRunning && e.key>='1' && e.key<='4') changeGun(parseInt(e.key)-1); };
 
-canvas.addEventListener('mousemove',e=>{if(gameActive)updateInput(e.clientX,e.clientY);});
-canvas.addEventListener('touchmove',e=>{if(gameActive){e.preventDefault();updateInput(e.touches[0].clientX,e.touches[0].clientY);}},{passive:false});
-canvas.addEventListener('mousedown',()=>isTouching=true);
-canvas.addEventListener('mouseup',()=>isTouching=false);
-canvas.addEventListener('touchstart',e=>{isTouching=true; updateInput(e.touches[0].clientX,e.touches[0].clientY);});
-canvas.addEventListener('touchend',()=>isTouching=false);
-window.addEventListener('keydown',e=>{if(gameActive && e.key>='1' && e.key<='4')changeGun(parseInt(e.key)-1);});
+function changeGun(i) { gunIndex = i; weaponEl.innerText = guns[i].name; document.querySelectorAll('.gun-btn').forEach((b,n)=>b.classList.toggle('active',n===i)); }
 
-function changeGun(idx){currentGun=idx; weaponEl.innerText="WEAPON: "+guns[idx].name; document.querySelectorAll('.gun-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));}
+function getLB() { return JSON.parse(localStorage.getItem('minionLB')||'[]'); }
+function saveScore() { let lb = getLB(); lb.push({name:pName,score:score,level:level}); lb.sort((a,b)=>b.score-a.score); localStorage.setItem('minionLB',JSON.stringify(lb.slice(0,10))); }
+function showLB() { let lb = getLB(); lbList.innerHTML = '<div class="lb-row lb-head"><span>NAME</span><span>SCORE</span></div>'; lb.forEach((e,n)=>lbList.innerHTML+=`<div class="lb-row"><span>${n+1}. ${e.name}</span><span>${e.score}</span></div>`); startScreen.classList.add('hidden'); lbScreen.classList.remove('hidden'); }
+function showStart() { lbScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); }
 
-function getLB(){return JSON.parse(localStorage.getItem('minionLB')||'[]');}
-function saveScore(){let lb=getLB(); lb.push({name:playerName,score:score,lvl:currentLevel,date:new Date().toLocaleDateString()}); lb.sort((a,b)=>b.score-a.score); localStorage.setItem('minionLB',JSON.stringify(lb.slice(0,10)));}
-function showLeaderboard(){let lb=getLB(); lbList.innerHTML='<div class="lb-row header"><span>RANK</span><span>SCORE</span></div>'; if(lb.length===0)lbList.innerHTML+='<div style="text-align:center;padding:20px;color:#666;">No scores yet!</div>'; lb.forEach((e,i)=>lbList.innerHTML+=`<div class="lb-row"><span>${i+1}. ${e.name}</span><span>${e.score}</span></div>`); startScreen.classList.add('hidden'); lbScreen.classList.remove('hidden');}
-function showStartScreen(){lbScreen.classList.add('hidden'); startScreen.classList.remove('hidden');}
+class Player {
+    constructor() { this.x = canvas.width/2; this.y = canvas.height-80; this.r = 25; this.hp = 100; }
+    draw() {
+        ctx.fillStyle = '#0074D9'; ctx.fillRect(this.x-22,this.y+5,44,35); ctx.fillRect(this.x-18,this.y+35,10,15); ctx.fillRect(this.x+8,this.y+35,10,15);
+        ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fillStyle = '#FFD700'; ctx.fill();
+        ctx.fillStyle = '#333'; ctx.fillRect(this.x-28,this.y-5,56,10);
+        ctx.beginPath(); ctx.arc(this.x,this.y,14,0,Math.PI*2); ctx.fillStyle = '#Silver'; ctx.fill();
+        ctx.beginPath(); ctx.arc(this.x,this.y,7,0,Math.PI*2); ctx.fillStyle = '#00ffff'; ctx.fill();
+        ctx.fillStyle = guns[gunIndex].color; ctx.fillRect(this.x+15,this.y+8,20,8);
+    }
+    update() {
+        this.x += (mx-this.x)*0.15; this.y += (my-this.y)*0.15;
+        this.x = Math.max(25,Math.min(canvas.width-25,this.x));
+        this.y = Math.max(canvas.height/2,Math.min(canvas.height-40,this.y));
+        if(firing && frame%guns[gunIndex].rate===0) shoot();
+    }
+    shoot() {
+        const g = guns[gunIndex];
+        if(g.type==='single') bullets.push(new Bullet(this.x,this.y-20,g));
+        else if(g.type==='spread'){ bullets.push(new Bullet(this.x,this.y-20,g,-4)); bullets.push(new Bullet(this.x,this.y-20,g,0)); bullets.push(new Bullet(this.x,this.y-20,g,4)); }
+        else bullets.push(new Bullet(this.x,this.y-25,g));
+    }
+}
 
-class Player{constructor(){this.x=canvas.width/2; this.y=canvas.height-80; this.radius=25; this.health=100;}draw(){
-ctx.fillStyle='#0074D9'; ctx.fillRect(this.x-22,this.y+5,44,35); ctx.fillRect(this.x-18,this.y+35,10,15); ctx.fillRect(this.x+8,this.y+35,10,15);
-ctx.beginPath(); ctx.arc(this.x,this.y,this.radius,0,Math.PI*2); ctx.fillStyle='#FFD700'; ctx.fill();
-ctx.fillStyle='#333'; ctx.fillRect(this.x-28,this.y-5,56,10);
-ctx.beginPath(); ctx.arc(this.x,this.y,14,0,Math.PI*2); ctx.fillStyle='#Silver'; ctx.fill();
-ctx.beginPath(); ctx.arc(this.x,this.y,7,0,Math.PI*2); ctx.fillStyle='#00ffff'; ctx.fill();
-ctx.fillStyle=guns[currentGun].color; ctx.fillRect(this.x+15,this.y+8,20,8);
-ctx.beginPath(); ctx.moveTo(this.x-8,this.y+18); ctx.lineTo(this.x+8,this.y+18); ctx.strokeStyle='#333'; ctx.lineWidth=2; ctx.stroke();}update(){
-this.x+=(mouseX-this.x)*0.15; this.y+=(mouseY-this.y)*0.15;
-if(this.x<25)this.x=25; if(this.x>canvas.width-25)this.x=canvas.width-25;
-if(this.y<canvas.height/2)this.y=canvas.height/2; if(this.y>canvas.height-40)this.y=canvas.height-40;
-if(isTouching && frameCount%guns[currentGun].cooldown===0)this.shoot();}shoot(){
-const g=guns[currentGun]; if(g.type==='single')projectiles.push(new Projectile(this.x,this.y-20,g)); else if(g.type==='spread'){projectiles.push(new Projectile(this.x,this.y-20,g,-5));projectiles.push(new Projectile(this.x,this.y-20,g,0));projectiles.push(new Projectile(this.x,this.y-20,g,5));}else projectiles.push(new Projectile(this.x,this.y-25,g));}}
+class Bullet {
+    constructor(x,y,g,vx) { this.x=x; this.y=y; this.r=g.size; this.c=g.color; this.vx=vx; this.vy=-g.speed; }
+    draw() { ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fillStyle=this.c; ctx.shadowBlur=12; ctx.shadowColor=this.c; ctx.fill(); ctx.shadowBlur=0; }
+    update() { this.x+=this.vx; this.y+=this.vy; }
+}
 
-class Projectile{constructor(x,y,g,ax=0){this.x=x;this.y=y;this.r=g.size;this.col=g.color;this.vx=ax;this.vy=-g.speed;}draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=this.col;ctx.shadowBlur=15;ctx.shadowColor=this.col;ctx.fill();ctx.shadowBlur=0;}update(){this.x+=this.vx;this.y+=this.vy;}}
+class Enemy {
+    constructor() { this.x=Math.random()*(canvas.width-60)+30; this.y=-40; this.r=25; this.c='#9b30ff'; this.vy = 2+Math.random()*2+(level*0.15)+(score*0.0001); if(this.vy>10)this.vy=10; }
+    draw() { ctx.fillStyle=this.c; ctx.fillRect(this.x-18,this.y-18,36,36); ctx.fillStyle='#00ff00'; ctx.fillRect(this.x-8,this.y-8,16,6); }
+    update() { this.y+=this.vy; }
+}
 
-class Enemy{constructor(){this.x=Math.random()*(canvas.width-60)+30;this.y=-40;this.r=25;this.col='#9b30ff';this.speed=Math.random()*2+2+(currentLevel*0.2)+(score*0.001);if(this.speed>12)this.speed=12;}draw(){ctx.fillStyle=this.col;ctx.fillRect(this.x-18,this.y-18,36,36);ctx.fillStyle='#00ff00';ctx.fillRect(this.x-8,this.y-8,16,6);ctx.strokeStyle='#003300';ctx.beginPath();ctx.moveTo(this.x,this.y-5);ctx.lineTo(this.x+30,this.y-15);ctx.stroke();ctx.beginPath();ctx.moveTo(this.x,this.y-5);ctx.lineTo(this.x-30,this.y-15);ctx.stroke();}update(){this.y+=this.speed;}}
+class Effect {
+    constructor(x,y,c) { this.x=x; this.y=y; this.c=c; this.vx=(Math.random()-0.5)*6; this.vy=(Math.random()-0.5)*6; this.life=1; this.r=Math.random()*3+1; }
+    draw() { ctx.globalAlpha=this.life; ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fillStyle=this.c; ctx.fill(); ctx.globalAlpha=1; }
+    update() { this.x+=this.vx; this.y+=this.vy; this.life-=0.03; }
+}
 
-class Particle{constructor(x,y,c){this.x=x;this.y=y;this.c=c;this.vx=(Math.random()-0.5)*8;this.vy=(Math.random()-0.5)*8;this.a=1;this.r=Math.random()*3+1;}draw(){ctx.save();ctx.globalAlpha=this.a;ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=this.c;ctx.fill();ctx.restore();}update(){this.x+=this.vx;this.y+=this.vy;this.a-=0.02;}}
+function spawn() { let rate = Math.max(25, 60-level); if(frame%rate===0) enemies.push(new Enemy()); }
+function boom(x,y,c) { for(let i=0;i<12;i++) effects.push(new Effect(x,y,c)); }
+function check() {
+    bullets.forEach((b,bi) => { enemies.forEach((e,ei) => { if(Math.hypot(b.x-e.x,b.y-e.y)<e.r+b.r){ boom(e.x,e.y,e.c); score+=100; scoreEl.innerText="SCORE: "+score; bullets.splice(bi,1); enemies.splice(ei,1); }}); });
+    enemies.forEach((e,ei) => { if(Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r){ boom(player.x,player.y,'#f00'); player.hp-=20; healthFill.style.width=player.hp+"%"; enemies.splice(ei,1); if(player.hp<=0)end(); }});
+}
 
-function init(){player=new Player();projectiles=[];enemies=[];particles=[];score=0;currentLevel=1;frameCount=0;levelTimer=0;scoreEl.innerText="SCORE: 0";levelEl.innerText="LEVEL: 1";healthFill.style.width="100%";player.health=100;}
+function loop() {
+    if(!gameRunning) return;
+    requestAnimationFrame(loop);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    
+    // Grid background
+    ctx.strokeStyle = '#00ffcc08';
+    for(let i=0;i<canvas.width;i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
+    for(let i=0;i<canvas.height;i+=50) { let y = (i + frame)%50; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+    
+    player.draw(); player.update();
+    bullets.forEach((b,i)=>{b.update();b.draw();if(b.y<0)bullets.splice(i,1);});
+    enemies.forEach((e,i)=>{e.update();e.draw();if(e.y>canvas.height+50)enemies.splice(i,1);});
+    effects.forEach((e,i)=>{e.update();e.draw();if(e.life<=0)effects.splice(i,1);});
+    
+    spawn(); check(); frame++; timer++;
+    if(timer>LEVEL_TIME){ timer=0; level++; if(level>MAX_LEVEL){ win(); }else{ levelEl.innerText="LEVEL: "+level; }}
+}
 
-function spawnEnemies(){let rate=60-currentLevel; if(rate<20)rate=20; if(frameCount%rate===0)enemies.push(new Enemy());}
+function start() {
+    pName = nameInput.value.trim() || "AGENT";
+    player = new Player(); bullets=[]; enemies=[]; effects=[]; score=0; level=1; frame=0; timer=0;
+    scoreEl.innerText="SCORE: 0"; levelEl.innerText="LEVEL: 1"; healthFill.style.width="100%";
+    gameRunning = true;
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    victoryScreen.classList.add('hidden');
+    loop();
+}
 
-function createExplosion(x,y,c){for(let i=0;i<15;i++)particles.push(new Particle(x,y,c));}
-
-function checkCollisions(){projectiles.forEach((p,pi)=>{enemies.forEach((e,ei)=>{if(Math.hypot(p.x-e.x,p.y-e.y)-e.r-p.r<1){createExplosion(e.x,e.y,e.col);score+=100;scoreEl.innerText="SCORE: "+score;setTimeout(()=>{enemies.splice(ei,1);projectiles.splice(pi,1);},0);}});});enemies.forEach((e,ei)=>{if(Math.hypot(player.x-e.x,player.y-e.y)-player.radius-e.r<1){createExplosion(player.x,player.y,'#ff0000');player.health-=20;healthFill.style.width=player.health+"%";enemies.splice
-player.health-=20;healthFill.style.width=player.health+"%";enemies.splice(ei,1);if(player.health<=0)endGame();}});}
-
-function checkLevel(){levelTimer++;if(levelTimer>=levelDuration){levelTimer=0;currentLevel++;if(currentLevel>MAX_LEVELS){winGame();}else{levelEl.innerText="LEVEL: "+currentLevel;}}}
-
-function animate(){if(!gameActive)return;requestAnimationFrame(animate);ctx.clearRect(0,0,canvas.width,canvas.height);
-ctx.strokeStyle='#00ffcc11';ctx.lineWidth=1;for(let i=0;i<canvas.width;i+=50){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,canvas.height);ctx.stroke();}
-let offset=(frameCount*2)%50;for(let i=0;i<canvas.height;i+=50){ctx.beginPath();ctx.moveTo(0,i+offset);ctx.lineTo(canvas.width,i+offset);ctx.stroke();}
-player.draw();player.update();particles.forEach((p,i)=>{if(p.a<=0)particles.splice(i,1){p.update();p.draw();}});projectiles.forEach((p,i)=>{p.update();p.draw();if(p.y+p.r<0)projectiles.splice(i,1);});
-enemies.forEach((e,i)=>{e.update();e.draw();if(e.y-e.r>canvas.height)enemies.splice(i,1);});spawnEnemies();checkCollisions();checkLevel();frameCount++;}
-
-function startGame(){playerName=playerNameInput.value.trim()||"AGENT";init();gameActive=true;startScreen.classList.add('hidden');lbScreen.classList.add('hidden');gameOverScreen.classList.add('hidden');victoryScreen.classList.add('hidden');animate();}
-
-function endGame(){gameActive=false;saveScore();finalScoreEl.innerText="Score: "+score;finalLevelEl.innerText="Level Reached: "+currentLevel;gameOverScreen.classList.remove('hidden');}
-
-function winGame(){gameActive=false;saveScore();victoryScoreEl.innerText="Final Score: "+score;victoryScreen.classList.remove('hidden');}
-
+function end() { gameRunning=false; saveScore(); document.getElementById('final-score').innerText="Score: "+score; document.getElementById('final-level').innerText="Level: "+level; gameOverScreen.classList.remove('hidden'); }
+function win() { gameRunning=false; saveScore(); document.getElementById('victory-score').innerText="Score: "+score; victoryScreen.classList.remove('hidden'); }
 </script>
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                     
+</html>
