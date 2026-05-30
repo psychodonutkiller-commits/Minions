@@ -2,405 +2,494 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Minion Banana Catch</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minion Defense: Dark Protocol</title>
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #222;
+            background-color: #050510;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            font-family: 'Arial', sans-serif;
+        }
+
+        canvas {
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            box-shadow: 0 0 20px #00ffcc33;
+            display: block;
+        }
+
+        .ui-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 2;
+        }
+
+        #score-board {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 5px #ffff00;
+            color: #ffd700;
+        }
+
+        #health-bar-container {
+            width: 200px;
+            height: 20px;
+            border: 2px solid #333;
+            background: #111;
+            margin-bottom: 20px;
+            align-self: center;
+            border-radius: 10px;
             overflow: hidden;
         }
-        canvas {
-            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
-            border: 5px solid #fff;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            border-radius: 10px;
+
+        #health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ffaa00);
+            transition: width 0.2s;
         }
-        #ui {
+
+        #start-screen, #game-over-screen {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            font-size: 24px;
-            text-shadow: 2px 2px 0 #000;
-            pointer-events: none;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 10;
         }
-        #gameOverScreen {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+
+        h1 {
+            font-size: 40px;
+            color: #ffd700;
+            text-shadow: 0 0 10px #ffaa00;
+            margin-bottom: 10px;
             text-align: center;
-            color: white;
-            display: none;
+            font-style: italic;
         }
-        #gameOverScreen h1 { font-size: 50px; margin: 0 0 20px 0; text-shadow: 3px 3px 0 #000; }
-        #restartBtn {
-            padding: 15px 30px;
+
+        p {
+            font-size: 18px;
+            color: #aaa;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        button {
+            padding: 15px 40px;
             font-size: 20px;
-            background: #FFD700;
+            background: #ffd700;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            color: #000;
             font-weight: bold;
-            transition: transform 0.1s;
+            cursor: pointer;
+            box-shadow: 0 0 15px #ffd700;
+            border-radius: 5px;
+            text-transform: uppercase;
         }
-        #restartBtn:hover { transform: scale(1.1); }
+        
+        button:hover {
+            background: #fff;
+            box-shadow: 0 0 25px #fff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
 
-<div id="ui">Score: <span id="scoreDisplay">0</span></div>
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
 
-<div id="gameOverScreen">
-    <h1>GAME OVER</h1>
-    <p style="font-size: 20px;">Final Score: <span id="finalScore">0</span></p>
-    <button id="restartBtn" onclick="location.reload()">Play Again</button>
+    <div class="ui-layer">
+        <div id="score-board">SCORE: 0</div>
+        <div id="health-bar-container">
+            <div id="health-fill"></div>
+        </div>
+    </div>
+
+    <div id="start-screen">
+        <h1>MINION DEFENSE</h1>
+        <p>Dark Protocol Engaged.<br>Defend the lab from Vector Bots!</p>
+        <p style="font-size:14px; color:#666;">PC: Mouse to Aim/Click to Shoot<br>Mobile: Touch to Aim/Shoot</p>
+        <button onclick="startGame()">START MISSION</button>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1>SYSTEM FAILURE</h1>
+        <p>The Villains have taken over.</p>
+        <h2 id="final-score" style="color:white; margin-bottom: 20px;">Score: 0</h2>
+        <button onclick="startGame()">REBOOT SYSTEM</button>
+    </div>
 </div>
-
-<canvas id="gameCanvas" width="800" height="600"></canvas>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const scoreDisplay = document.getElementById('scoreDisplay');
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const finalScoreDisplay = document.getElementById('finalScore');
+    
+    const scoreEl = document.getElementById('score-board');
+    const healthFill = document.getElementById('health-fill');
+    const startScreen = document.getElementById('start-screen');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const finalScoreEl = document.getElementById('final-score');
 
-    // --- Game Variables ---
+    let gameActive = false;
     let score = 0;
-    let gameFrame = 0;
-    let gameOver = false;
-    let lives = 3;
-    let particles = []; // For explosion effects
-    let bananas = [];   // Falling bananas
-    let floatTexts = []; 
+    let frameCount = 0;
+    let player;
+    let projectiles = [];
+    let enemies = [];
+    let particles = [];
 
-    // --- Input Handling ---
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // INPUT
     let mouseX = canvas.width / 2;
-    let leftPressed = false;
-    let rightPressed = false;
+    let mouseY = canvas.height - 100;
+    let isTouching = false;
+
+    function updateInput(x, y) {
+        mouseX = x;
+        mouseY = y;
+    }
 
     canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        mouseX = e.clientX - rect.left;
+        if(!gameActive) return;
+        updateInput(e.clientX, e.clientY);
     });
 
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft') leftPressed = true;
-        if (e.key === 'ArrowRight') rightPressed = true;
-    });
-    window.addEventListener('keyup', (e) => {
-        if (e.key === 'ArrowLeft') leftPressed = false;
-        if (e.key === 'ArrowRight') rightPressed = false;
-    });
+    canvas.addEventListener('touchmove', (e) => {
+        if(!gameActive) return;
+        e.preventDefault();
+        updateInput(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
 
-    // --- THE MINION (Player) ---
-    class Minion {
+    canvas.addEventListener('mousedown', () => isTouching = true);
+    canvas.addEventListener('mouseup', () => isTouching = false);
+    canvas.addEventListener('touchstart', (e) => {
+        isTouching = true;
+        updateInput(e.touches[0].clientX, e.touches[0].clientY);
+    });
+    canvas.addEventListener('touchend', () => isTouching = false);
+
+    // CLASSES
+
+    class Player {
         constructor() {
-            this.width = 60;
-            this.height = 90;
-            this.x = canvas.width / 2 - this.width / 2;
-            this.y = canvas.height - this.height - 10;
-            this.speed = 8;
-            this.blinkTimer = 0;
-            this.eyeOpen = true;
-        }
-
-        update() {
-            if (gameOver) return;
-
-            if (leftPressed && this.x > 0) {
-                this.x -= this.speed;
-            } else if (rightPressed && this.x < canvas.width - this.width) {
-                this.x += this.speed;
-            } else if (mouseX > 0 && mouseX < canvas.width) {
-                let targetX = mouseX - this.width / 2;
-                this.x += (targetX - this.x) * 0.1;
-            }
-
-            this.blinkTimer++;
-            if (this.blinkTimer > 200 + Math.random() * 100) {
-                this.eyeOpen = false;
-                if (this.blinkTimer > 200 + Math.random() * 120) {
-                    this.eyeOpen = true;
-                    this.blinkTimer = 0;
-                }
-            }
+            this.radius = 25;
+            this.color = '#FFD700';
+            this.x = canvas.width / 2;
+            this.y = canvas.height - 80;
+            this.health = 100;
         }
 
         draw() {
-            ctx.save();
-            ctx.translate(this.x + this.width/2, this.y + this.height/2);
+            // Overalls (Blue)
+            ctx.fillStyle = '#0074D9';
+            ctx.fillRect(this.x - 22, this.y + 5, 44, 35);
 
             // Legs
+            ctx.fillRect(this.x - 18, this.y + 35, 10, 15);
+            ctx.fillRect(this.x + 8, this.y + 35, 10, 15);
+
+            // Head (Yellow)
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+
+            // Goggle Strap
             ctx.fillStyle = '#333';
-            ctx.fillRect(-25, 25, 15, 20);
-            ctx.fillRect(10, 25, 15, 20);
+            ctx.fillRect(this.x - 28, this.y - 5, 56, 10);
 
-            // Body
-            ctx.fillStyle = '#F4E04D';
+            // Goggle Eye (Silver/Cyan)
             ctx.beginPath();
-            ctx.roundRect(-30, -45, 60, 90, 30);
+            ctx.arc(this.x, this.y, 14, 0, Math.PI * 2);
+            ctx.fillStyle = '#Silver';
             ctx.fill();
-            
-            // Overalls
-            ctx.fillStyle = '#4287f5';
-            ctx.fillRect(-30, 0, 60, 50);
-            ctx.fillStyle = '#3266bf';
-            ctx.fillRect(-20, -20, 10, 20);
-            ctx.fillRect(10, -20, 10, 20);
-            ctx.fillRect(-10, 10, 20, 15);
-
-            // Goggles
-            ctx.fillStyle = '#C0C0C0';
-            ctx.fillRect(-32, -15, 64, 15);
-            
-            // Eye
-            ctx.fillStyle = 'white';
             ctx.beginPath();
-            ctx.arc(0, -8, 14, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, 7, 0, Math.PI * 2);
+            ctx.fillStyle = '#00ffff';
             ctx.fill();
-            ctx.strokeStyle = '#999';
-            ctx.lineWidth = 2;
-            ctx.stroke();
 
-            if (this.eyeOpen) {
-                ctx.fillStyle = '#5C4033';
-                ctx.beginPath();
-                ctx.arc(0, -8, 7, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = 'white';
-                ctx.beginPath();
-                ctx.arc(2, -11, 2, 0, Math.PI * 2);
-                ctx.fill();
-            } else {
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(-10, -8);
-                ctx.lineTo(10, -8);
-                ctx.stroke();
-            }
-
-            // Mouth
+            // Mouth (Grim line)
+            ctx.beginPath();
+            ctx.moveTo(this.x - 8, this.y + 18);
+            ctx.lineTo(this.x + 8, this.y + 18);
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 15, 10, 0.2, Math.PI - 0.2);
             ctx.stroke();
-
-            // Hair
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(-10, -45);
-            ctx.lineTo(-15, -55);
-            ctx.moveTo(0, -45);
-            ctx.lineTo(0, -60);
-            ctx.moveTo(10, -45);
-            ctx.lineTo(15, -55);
-            ctx.stroke();
-
-            ctx.restore();
-        }
-    }
-
-    // --- BANANA ---
-    class Banana {
-        constructor() {
-            this.width = 40;
-            this.height = 40;
-            this.x = Math.random() * (canvas.width - this.width);
-            this.y = -50;
-            this.speed = Math.random() * 2 + 2 + (score * 0.05);
-            this.angle = 0;
-            this.spinSpeed = Math.random() * 0.1 + 0.05;
-            this.markedForDeletion = false;
         }
 
         update() {
-            if (gameOver) return;
-            this.y += this.speed;
-            this.angle += this.spinSpeed;
+            // Smooth follow
+            let dx = mouseX - this.x;
+            let dy = mouseY - this.y;
+            this.x += dx * 0.15;
+            this.y += dy * 0.15;
 
-            if (this.y > canvas.height) {
-                this.markedForDeletion = true;
-                lives--; // Lose life if missed
+            // Bounds
+            if (this.x < this.radius) this.x = this.radius;
+            if (this.x > canvas.width - this.radius) this.x = canvas.width - this.radius;
+            if (this.y < canvas.height/2) this.y = canvas.height/2;
+            if (this.y > canvas.height - 40) this.y = canvas.height - 40;
+
+            // Shoot
+            if(isTouching && frameCount % 8 === 0) {
+                projectiles.push(new Projectile(this.x, this.y - 20));
             }
-        }
-
-        draw() {
-            ctx.save();
-            ctx.translate(this.x + this.width/2, this.y + this.height/2);
-            ctx.rotate(this.angle);
-
-            ctx.fillStyle = '#FFE135';
-            ctx.beginPath();
-            ctx.arc(0, 0, 15, 0.5, Math.PI - 0.5); 
-            ctx.lineTo(0,0);
-            ctx.fill();
-            
-            ctx.fillStyle = '#8B4513';
-            ctx.beginPath();
-            ctx.arc(5, -5, 1, 0, Math.PI*2);
-            ctx.arc(-5, 5, 1, 0, Math.PI*2);
-            ctx.fill();
-
-            ctx.restore();
         }
     }
 
-    // --- EFFECTS ---
+    class Projectile {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.radius = 6;
+            this.color = '#FFD700';
+            this.velocity = {x: 0, y: -18};
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        update() {
+            this.y += this.velocity.y;
+        }
+    }
+
+    class Enemy {
+        constructor() {
+            this.radius = 25;
+            this.x = Math.random() * (canvas.width - 60) + 30;
+            this.y = -40;
+            this.color = '#9b30ff'; // Vector Purple
+            this.speed = Math.random() * 2 + 2 + (score * 0.005); 
+            if(this.speed > 10) this.speed = 10; // Max speed
+        }
+
+        draw() {
+            // Body
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x - 18, this.y - 18, 36, 36);
+            
+            // Eye
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(this.x - 8, this.y - 8, 16, 6);
+            
+            // Eye line
+            ctx.strokeStyle = '#003300';
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y-5);
+            ctx.lineTo(this.x+30, this.y-15);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y-5);
+            ctx.lineTo(this.x-30, this.y-15);
+            ctx.stroke();
+        }
+
+        update() {
+            this.y += this.speed;
+        }
+    }
+
     class Particle {
         constructor(x, y, color) {
             this.x = x;
             this.y = y;
-            this.size = Math.random() * 5 + 2;
-            this.speedX = Math.random() * 6 - 3;
-            this.speedY = Math.random() * 6 - 3;
             this.color = color;
-            this.life = 100;
+            this.velocity = {
+                x: (Math.random() - 0.5) * 8,
+                y: (Math.random() - 0.5) * 8
+            };
+            this.alpha = 1;
+            this.radius = Math.random() * 3 + 1;
         }
-        update() {
-            this.x += this.speedX;
-            this.y += this.speedY;
-            this.life -= 2;
-        }
+
         draw() {
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = this.life / 100;
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
             ctx.fill();
-            ctx.globalAlpha = 1.0;
+            ctx.restore();
         }
-    }
 
-    class FloatingText {
-        constructor(x, y, text) {
-            this.x = x;
-            this.y = y;
-            this.text = text;
-            this.life = 100;
-            this.dy = -1;
-        }
         update() {
-            this.y += this.dy;
-            this.life -= 3;
-        }
-        draw() {
-            ctx.fillStyle = '#FFD700';
-            ctx.font = 'bold 20px Arial';
-            ctx.globalAlpha = Math.max(0, this.life / 100);
-            ctx.fillText(this.text, this.x, this.y);
-            ctx.globalAlpha = 1.0;
+            this.x += this.velocity.x;
+            this.y += this.velocity.y;
+            this.alpha -= 0.02;
         }
     }
 
-    // --- Helper Functions ---
-    function handleCollision(minion, banana) {
-        if (
-            minion.x < banana.x + banana.width &&
-            minion.x + minion.width > banana.x &&
-            minion.y < banana.y + banana.height &&
-            minion.y + minion.height > banana.y
-        ) {
-            return true;
-        }
-        return false;
+    // GAME LOGIC
+
+    function init() {
+        player = new Player();
+        projectiles = [];
+        enemies = [];
+        particles = [];
+        score = 0;
+        frameCount = 0;
+        scoreEl.innerText = "SCORE: " + score;
+        healthFill.style.width = "100%";
     }
 
-    function createExplosion(x, y) {
-        const colors = ['#FFE135', '#8B4513', '#32CD32', '#FFD700'];
-        for (let i = 0; i < 10; i++) {
-            particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+    function spawnEnemies() {
+        if (frameCount % 60 === 0) { // Spawn rate
+            enemies.push(new Enemy());
         }
     }
 
-    const player = new Minion();
+    function createExplosion(x, y, color) {
+        for (let i = 0; i < 15; i++) {
+            particles.push(new Particle(x, y, color));
+        }
+    }
 
-    // --- Main Game Loop ---
+    function checkCollisions() {
+        // Projectiles hitting Enemies
+        projectiles.forEach((projectile, pIndex) => {
+            enemies.forEach((enemy, eIndex) => {
+                const dist = Math.hypot(projectile.x - enemy.x, projectile.y - enemy.y);
+                
+                if (dist - enemy.radius - projectile.radius < 1) {
+                    createExplosion(enemy.x, enemy.y, enemy.color);
+                    score += 100;
+                    scoreEl.innerText = "SCORE: " + score;
+                    
+                    setTimeout(() => {
+                        enemies.splice(eIndex, 1);
+                        projectiles.splice(pIndex, 1);
+                    }, 0);
+                }
+            });
+        });
+
+        // Enemies hitting Player
+        enemies.forEach((enemy, index) => {
+            const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+            
+            if (dist - enemy.radius - player.radius < 1) {
+                createExplosion(player.x, player.y, '#ff0000');
+                player.health -= 20;
+                healthFill.style.width = player.health + "%";
+                enemies.splice(index, 1);
+
+                if (player.health <= 0) {
+                    endGame();
+                }
+            }
+        });
+    }
+
     function animate() {
+        if (!gameActive) return;
+        requestAnimationFrame(animate);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Spawn Bananas (faster as score increases)
-        let spawnRate = 60;
-        if (score > 10) spawnRate = 50;
-        if (score > 20) spawnRate = 40;
-        if (score > 40) spawnRate = 30;
-
-        if (gameFrame % spawnRate === 0 && !gameOver) {
-            bananas.push(new Banana());
+        // Draw Background Grid (Sci-fi look)
+        ctx.strokeStyle = '#00ffcc11';
+        ctx.lineWidth = 1;
+        for(let i=0; i<canvas.width; i+=50) {
+            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke();
+        }
+        // Horizontal moving grid
+        let offset = (frameCount * 2) % 50;
+        for(let i=0; i<canvas.height; i+=50) {
+            ctx.beginPath(); ctx.moveTo(0, i + offset); ctx.lineTo(canvas.width, i + offset); ctx.stroke();
         }
 
-        // Update Player
-        player.update();
         player.draw();
+        player.update();
 
-        // Update Particles
-        for (let i = 0; i < particles.length; i++) {
-            particles[i].update();
-            particles[i].draw();
-            if (particles[i].life <= 0) {
-                particles.splice(i, 1);
-                i--;
+        particles.forEach((particle, index) => {
+            if(particle.alpha <= 0) {
+                particles.splice(index, 1);
+            } else {
+                particle.update();
+                particle.draw();
             }
-        }
+        });
 
-        // Update Floating Text
-        for (let i = 0; i < floatTexts.length; i++) {
-            floatTexts[i].update();
-            floatTexts[i].draw();
-            if (floatTexts[i].life <= 0) {
-                floatTexts.splice(i, 1);
-                i--;
+        projectiles.forEach((projectile, index) => {
+            projectile.update();
+            projectile.draw();
+            if (projectile.y + projectile.radius < 0) {
+                projectiles.splice(index, 1);
             }
-        }
+        });
 
-        // Update Bananas
-        for (let i = 0; i < bananas.length; i++) {
-            bananas[i].update();
-            bananas[i].draw();
-
-            // Collision with Player
-            if (handleCollision(player, bananas[i])) {
-                score++;
-                bananas[i].markedForDeletion = true;
-                scoreDisplay.innerText = score;
-                createExplosion(bananas[i].x, bananas[i].y);
-                floatTexts.push(new FloatingText(bananas[i].x, bananas[i].y, "+1"));
+        enemies.forEach((enemy, index) => {
+            enemy.update();
+            enemy.draw();
+            if (enemy.y - enemy.radius > canvas.height) {
+                enemies.splice(index, 1);
+                // Penalty for letting enemies pass? Optional
             }
+        });
 
-            if (bananas[i].markedForDeletion) {
-                bananas.splice(i, 1);
-                i--;
-            }
-        }
-
-        // Check Game Over
-        if (lives <= 0 && !gameOver) {
-            gameOver = true;
-            finalScoreDisplay.innerText = score;
-            gameOverScreen.style.display = 'block';
-        }
-
-        // Draw Lives (Visual hearts)
-        ctx.fillStyle = 'white';
-        ctx.font = '20px Arial';
-        ctx.fillText("Lives: " + "❤️".repeat(lives), 20, 50);
-
-        gameFrame++;
-        requestAnimationFrame(animate);
+        spawnEnemies();
+        checkCollisions();
+        frameCount++;
     }
 
-    animate();
-</script>
+    function startGame() {
+        init();
+        gameActive = true;
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        animate();
+    }
 
+    function endGame() {
+        gameActive = false;
+        finalScoreEl.innerText = "Score: " + score;
+        gameOverScreen.classList.remove('hidden');
+    }
+
+</script>
 </body>
 </html>
